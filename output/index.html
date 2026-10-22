@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>출력 — 프로젝션 매퍼</title>
+    <link rel="icon" href="data:," />
+    <style>
+      html, body { margin: 0; height: 100%; background: #000; overflow: hidden; cursor: none; }
+      body.awake { cursor: default; }
+      #hint { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); padding: 8px 14px; border-radius: 8px; background: #000c; color: #ddd; font: 14px/1.5 system-ui, sans-serif; text-align: center; opacity: 0; transition: opacity .3s; pointer-events: none; }
+      body.awake #hint { opacity: 1; }
+      @media (prefers-reduced-motion: reduce) { #hint { transition: none; } }
+      canvas { display: block; width: 100vw; height: 100vh; }
+      #gate { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: #000; color: #888; font: 16px system-ui, sans-serif; cursor: pointer; }
+      #gate.show { display: flex; }
+      #info { position: fixed; left: 8px; top: 8px; display: none; padding: 4px 8px; background: #000c; color: #0f0; font: 13px/1.4 ui-monospace, monospace; white-space: pre; }
+      #info.show { display: block; }
+    </style>
+  </head>
+  <body>
+    <canvas id="out" aria-label="프로젝션 출력 화면"></canvas>
+    <!-- 영상 자동재생이 막혔을 때만 잠깐 보인다 -->
+    <div id="gate" role="button" tabindex="0">화면을 한 번 누르면 영상이 재생됩니다</div>
+    <!-- 마우스를 움직일 때만 2초 보이는 안내 (투사 중에는 숨김) -->
+    <div id="hint" aria-hidden="true">출력 화면입니다 · 두 번 클릭: 전체화면 · I: 성능 정보<br />점 조정은 편집기(/editor/)나 리모컨(/remote/)에서 합니다</div>
+    <!-- 성능 확인용. 평소엔 숨김, I 키로 켜고 끈다 -->
+    <div id="info" aria-live="off"></div>
+    <script type="module" src="/src/pages/output.ts"></script>
+  </body>
+</html>

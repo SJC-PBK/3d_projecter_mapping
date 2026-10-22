@@ -1,0 +1,87 @@
+/* 공용 스타일. 어두운 곳에서 투사 작업을 하므로 어두운 화면을 기본으로 한다. */
+:root {
+  --bg: #111317;
+  --panel: #1b1e24;
+  --panel-2: #23272f;
+  --line: #343a45;
+  --text: #e8eaee;
+  --muted: #a3aab6;
+  --accent: #ffb000;
+  --accent-text: #1a1300;
+  --danger: #ff6b6b;
+  --ok: #4cd18a;
+  --radius: 8px;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.45 system-ui, -apple-system, 'Segoe UI', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+}
+button, input, select { font: inherit; color: inherit; }
+button {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  min-height: 32px;
+}
+button:hover:not(:disabled) { border-color: var(--muted); }
+button:disabled { opacity: 0.4; cursor: default; }
+button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+button.danger { color: var(--danger); }
+button[aria-pressed='true'] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input[type='text'], input[type='number'], input[type='url'], select {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 5px 8px;
+  min-height: 32px;
+  width: 100%;
+}
+input[type='color'] { width: 44px; height: 32px; padding: 0 2px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+input[type='range'] { width: 100%; accent-color: var(--accent); }
+label { display: block; color: var(--muted); font-size: 12px; margin: 8px 0 3px; }
+.row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.row > .grow { flex: 1; min-width: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+h2 { font-size: 13px; margin: 0 0 8px; color: var(--muted); font-weight: 600; letter-spacing: 0.02em; }
+kbd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-size: 12px; }
+
+/* 무대 (렌더 화면 + 조절점) */
+.stage { position: relative; width: 100%; height: 100%; overflow: hidden; background: #000; }
+.stage-view { position: absolute; overflow: hidden; background: #000; }
+.stage-gl, .stage-overlay { position: absolute; inset: 0; width: 100%; height: 100%; display: block; transform-origin: 0 0; }
+.stage { touch-action: none; }
+.stage:fullscreen { background: #000; }
+
+/* 알림 */
+#toasts { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); display: grid; gap: 6px; z-index: 100; pointer-events: none; }
+.toast { background: var(--panel-2); border: 1px solid var(--line); padding: 8px 14px; border-radius: var(--radius); box-shadow: 0 4px 16px #0008; }
+.toast-error { border-color: var(--danger); color: #ffd0d0; }
+
+/* 새 버전 안내 */
+#update-banner { position: fixed; top: 0; left: 0; right: 0; z-index: 200; display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;
+  padding: 8px max(16px, env(safe-area-inset-right)) 8px max(16px, env(safe-area-inset-left)); background: var(--accent); color: var(--accent-text); font-weight: 600; }
+#update-banner button { background: var(--bg); color: var(--text); border-color: var(--bg); }
+
+/* 연결 상태 점 */
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); margin-right: 5px; vertical-align: middle; }
+.dot.ok { background: var(--ok); }
+.dot.bad { background: var(--danger); }
+
+/* 시작 화면 */
+.home { max-width: 720px; margin: 0 auto; padding: 32px 16px; }
+.home h1 { font-size: 24px; margin: 0 0 6px; }
+.cards { display: grid; gap: 12px; margin: 24px 0; }
+.card { display: block; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); color: inherit; text-decoration: none; }
+.card:hover { border-color: var(--accent); }
+.card strong { display: block; font-size: 16px; margin-bottom: 4px; }
+.home ol { padding-left: 20px; }
+.home li { margin: 4px 0; }

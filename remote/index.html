@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#111317" />
+    <title>리모컨 — 프로젝션 매퍼</title>
+    <link rel="icon" href="data:," />
+  </head>
+  <body class="remote">
+    <header class="r-top">
+      <select id="surface-select" aria-label="면 고르기"></select>
+      <span id="status" class="small" aria-live="polite"></span>
+    </header>
+    <main id="stage" aria-label="면 배치. 점을 눌러 고르고, 빈 곳을 끌면 고른 점이 따라 움직입니다"></main>
+    <section class="r-controls" aria-label="조작">
+      <div class="r-row">
+        <button id="prev-pt" type="button" aria-label="이전 점">◀ 점</button>
+        <span id="pt-label" class="r-label" aria-live="polite">점 없음</span>
+        <button id="next-pt" type="button" aria-label="다음 점">점 ▶</button>
+      </div>
+      <div class="r-pad">
+        <button data-dir="0,-1" type="button" aria-label="위로" class="up">▲</button>
+        <button data-dir="-1,0" type="button" aria-label="왼쪽으로" class="left">◀</button>
+        <button id="step" type="button" class="mid" aria-label="이동 단위 바꾸기">1px</button>
+        <button data-dir="1,0" type="button" aria-label="오른쪽으로" class="right">▶</button>
+        <button data-dir="0,1" type="button" aria-label="아래로" class="down">▼</button>
+      </div>
+      <div class="r-row">
+        <button id="fine" type="button" aria-pressed="false">정밀 끌기</button>
+        <button id="zoom" type="button">확대 1×</button>
+        <button id="preview" type="button" aria-pressed="false">화면 미리보기</button>
+      </div>
+      <div class="r-row">
+        <button id="box" type="button" aria-pressed="false">크기 상자</button>
+        <button id="circle" type="button">원으로 맞추기</button>
+      </div>
+      <div class="r-row">
+        <button id="undo" type="button">실행취소</button>
+        <button id="redo" type="button">다시실행</button>
+        <button id="toggle-vis" type="button">숨기기</button>
+        <button id="toggle-lock" type="button">잠그기</button>
+      </div>
+    </section>
+    <script type="module" src="/src/pages/remote.ts"></script>
+  </body>
+</html>

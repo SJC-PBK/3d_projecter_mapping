@@ -1,0 +1,29 @@
+{
+  "name": "projection-mapper",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "브라우저만으로 동작하는 프로젝션 매핑 웹앱",
+  "scripts": {
+    "dev": "node server/index.ts --dev",
+    "build": "tsc --noEmit && vite build",
+    "start": "node server/index.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "assets": "node scripts/make-assets.ts"
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "dependencies": {
+    "qrcode-terminal": "^0.12.0",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/ws": "^8.18.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
+  }
+}

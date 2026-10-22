@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>편집기 — 프로젝션 매퍼</title>
+    <link rel="icon" href="data:," />
+  </head>
+  <body class="editor">
+    <header class="topbar">
+      <strong class="brand"><a href="../">프로젝션 매퍼</a></strong>
+      <div class="row" role="toolbar" aria-label="프로젝트">
+        <button id="btn-new" type="button">새로 만들기</button>
+        <button id="btn-open" type="button">불러오기</button>
+        <button id="btn-save" type="button">저장</button>
+        <button id="btn-undo" type="button" title="Ctrl+Z">실행취소</button>
+        <button id="btn-redo" type="button" title="Ctrl+Shift+Z">다시실행</button>
+      </div>
+      <div class="row" role="toolbar" aria-label="출력">
+        <button id="btn-output" type="button" class="primary">출력 창 열기</button>
+        <select id="sel-pattern" aria-label="격자 화면 (처음 세팅할 때 프로젝터가 비추는 범위를 격자로 채움)" title="G 키로 차례로 바꿈">
+          <option value="">격자 화면 끔</option>
+          <option value="black">격자 화면 블랙</option>
+          <option value="blue">격자 화면 블루</option>
+          <option value="green">격자 화면 그린</option>
+        </select>
+        <button id="btn-full" type="button" title="F">전체화면</button>
+        <button id="btn-handles" type="button" aria-pressed="true" title="H">조절점 표시</button>
+      </div>
+      <div id="status" class="status small" aria-live="polite"></div>
+    </header>
+    <aside class="left" aria-label="면과 소스">
+      <section id="surfaces"></section>
+      <section id="sources"></section>
+    </aside>
+    <main id="stage" aria-label="출력 미리보기. 면 안을 끌면 면 이동, 점을 끌면 모서리 이동"></main>
+    <aside class="right" aria-label="속성">
+      <section id="props"></section>
+      <section class="help small muted">
+        <h2>키보드</h2>
+        <div><kbd>←↑→↓</kbd> 1px · <kbd>Shift</kbd>+방향 10px</div>
+        <div><kbd>Tab</kbd> 다음 점 · <kbd>Shift</kbd>+<kbd>Tab</kbd> 이전 점</div>
+        <div><kbd>[</kbd> <kbd>]</kbd> 이전/다음 면 · <kbd>Esc</kbd> 선택 해제</div>
+        <div><kbd>Ctrl</kbd>+<kbd>Z</kbd> 실행취소 · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> 다시실행</div>
+        <div><kbd>Ctrl</kbd>+<kbd>D</kbd> 복제 · <kbd>Delete</kbd> 삭제 · <kbd>F</kbd> 전체화면 · <kbd>H</kbd> 조절점</div>
+        <div>마스크 편집 중: 테두리 두 번 클릭 = 점 추가</div>
+        <div><kbd>Shift</kbd>+클릭 점 여러 개 고르기 · <kbd>Shift</kbd>+끌기 사각형으로 고르기 · <kbd>Ctrl</kbd>+<kbd>A</kbd> 모든 점</div>
+        <div><kbd>B</kbd> 크기 조절 상자 · <kbd>Esc</kbd> 점 선택 해제</div>
+        <div><kbd>G</kbd> 격자 화면 끔 → 블랙 → 블루 → 그린</div>
+      </section>
+    </aside>
+    <script type="module" src="/src/pages/editor.ts"></script>
+  </body>
+</html>
