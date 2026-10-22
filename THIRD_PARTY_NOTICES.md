@@ -25,3 +25,5 @@
 ## 포함된 자료
 
 `public/assets/` 의 테스트 패턴(grid·grid-white·checker·circles.png)과 샘플 영상(sample.mp4, ffmpeg 내장 시험 신호 testsrc2 로 생성)은 이 프로젝트에서 만든 것으로, 이 저장소의 MIT 라이선스를 따릅니다.
+
+`public/assets/clips/` 의 매핑용 반복 영상 20종(8초)은 이 프로젝트에서 직접 그린 장면(HTML·캔버스 코드)을 HyperFrames 로 렌더링한 것으로, 외부 영상·그림 소재를 쓰지 않았으며 이 저장소의 MIT 라이선스를 따릅니다.

@@ -268,11 +268,29 @@ export function isOldGridImage(s: Source): boolean {
   return s.id === WHITE_GRID.id && s.type === 'image' && s.uri === 'assets/grid-white.png';
 }
 
-/** 매핑용 8초 반복 영상 3종 (검은 바탕 = 빛 없음, 첫·끝 장면이 같아 반복 이음매 없음) */
+/** 매핑용 8초 반복 영상 20종 (검은 바탕 = 빛 없음, 첫·끝 장면이 같아 반복 이음매 없음) */
 export const SAMPLE_CLIPS: Source[] = [
   { id: 'clip-light-sweep', name: '빛 훑기 (영상)', type: 'video', uri: 'assets/clips/light-sweep.mp4', loop: true },
   { id: 'clip-neon-edge', name: '테두리 네온 (영상)', type: 'video', uri: 'assets/clips/neon-edge.mp4', loop: true },
   { id: 'clip-brick-build', name: '벽돌 쌓기 (영상)', type: 'video', uri: 'assets/clips/brick-build.mp4', loop: true },
+  // 2026-10-23 추가 17종 (clips/fx/*.js 캔버스 장면 → node clips/gen.mjs)
+  { id: 'clip-laser-scan', name: '레이저 스캔 (영상)', type: 'video', uri: 'assets/clips/laser-scan.mp4', loop: true },
+  { id: 'clip-pulse-rings', name: '파동 원 (영상)', type: 'video', uri: 'assets/clips/pulse-rings.mp4', loop: true },
+  { id: 'clip-spotlight', name: '스포트라이트 (영상)', type: 'video', uri: 'assets/clips/spotlight.mp4', loop: true },
+  { id: 'clip-color-wash', name: '색 물들임 (영상)', type: 'video', uri: 'assets/clips/color-wash.mp4', loop: true },
+  { id: 'clip-window-lights', name: '창문 불빛 (영상)', type: 'video', uri: 'assets/clips/window-lights.mp4', loop: true },
+  { id: 'clip-depth-tunnel', name: '깊이 터널 (영상)', type: 'video', uri: 'assets/clips/depth-tunnel.mp4', loop: true },
+  { id: 'clip-cracks', name: '금 가기 (영상)', type: 'video', uri: 'assets/clips/cracks.mp4', loop: true },
+  { id: 'clip-tile-flip', name: '타일 뒤집기 (영상)', type: 'video', uri: 'assets/clips/tile-flip.mp4', loop: true },
+  { id: 'clip-pixel-dissolve', name: '픽셀 흩어짐 (영상)', type: 'video', uri: 'assets/clips/pixel-dissolve.mp4', loop: true },
+  { id: 'clip-water-caustics', name: '물결 빛 (영상)', type: 'video', uri: 'assets/clips/water-caustics.mp4', loop: true },
+  { id: 'clip-rain', name: '비 (영상)', type: 'video', uri: 'assets/clips/rain.mp4', loop: true },
+  { id: 'clip-snow', name: '눈 (영상)', type: 'video', uri: 'assets/clips/snow.mp4', loop: true },
+  { id: 'clip-fire', name: '불길 (영상)', type: 'video', uri: 'assets/clips/fire.mp4', loop: true },
+  { id: 'clip-vines', name: '덩굴 자라기 (영상)', type: 'video', uri: 'assets/clips/vines.mp4', loop: true },
+  { id: 'clip-starfield', name: '별 우주 (영상)', type: 'video', uri: 'assets/clips/starfield.mp4', loop: true },
+  { id: 'clip-glitch', name: '글리치 (영상)', type: 'video', uri: 'assets/clips/glitch.mp4', loop: true },
+  { id: 'clip-fireworks', name: '불꽃놀이 (영상)', type: 'video', uri: 'assets/clips/fireworks.mp4', loop: true },
 ];
 
 /** 처음 실행했을 때의 프로젝트: 기본 격자를 쿼드 하나에 */

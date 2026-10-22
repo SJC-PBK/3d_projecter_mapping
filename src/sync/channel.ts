@@ -169,6 +169,9 @@ export class SyncChannel {
         const last = this.lastSeen.get(msg.from);
         if (last !== undefined && msg.seq <= last) return; // 이미 받았거나 더 오래된 것
         this.lastSeen.set(msg.from, msg.seq);
+        // 서버에 아직 못 올린 변경이 있는 동안, 같은 PC 의 다른 창이 먼저 다시 붙어 전해 준 서버 상태로 덮어쓰지 않는다
+        // (그러면 이 창이 다시 붙을 때 올릴 내용이 사라진다)
+        if (via === 'bc' && this.canEdit && this.dirtyOffline && msg.op.type === 'full') return;
         if (via === 'ws' && !this.synced && msg.op.type === 'full' && this.canEdit) {
           // 서버 기준 상태가 이 화면의 매핑을 덮어쓰기 직전: 다르면 이전 것을 넘겨 되돌릴 수 있게 한다
           const local = this.opts.store.project;

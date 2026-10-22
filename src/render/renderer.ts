@@ -42,6 +42,7 @@ export class Renderer {
   private tri!: Geometry;
   private meshes = new Map<string, MeshCache>();
   private sources!: SourceManager;
+  private usedKey = '';
   private project: Project | null = null;
   private raf = 0;
   private frames = 0;
@@ -83,17 +84,27 @@ export class Renderer {
     this.sources = new SourceManager(gl);
     this.sources.onNeedsGesture = () => this.opts.onNeedsGesture?.();
     this.sources.onError = (id, msg) => this.opts.onSourceError?.(id, msg);
-    if (this.project) this.sources.sync(this.project.sources);
+    this.usedKey = '';
+    if (this.project) this.syncSources(this.project);
   }
 
   setProject(p: Project): void {
     const prevSources = this.project?.sources;
     this.project = p;
-    if (p.sources !== prevSources) this.sources.sync(p.sources);
+    this.syncSources(p, p.sources !== prevSources);
     // 없어진 메시 면의 버퍼 정리
     for (const id of this.meshes.keys()) {
       if (!p.surfaces.some((s) => s.id === id && s.kind === 'mesh')) this.dropMesh(id);
     }
+  }
+
+  /** 면이 쓰는 소스만 불러온다 — 목록의 영상을 전부 열면 기기가 동시에 20개를 재생하게 된다 */
+  private syncSources(p: Project, changed = true): void {
+    const used = new Set(p.surfaces.map((s) => s.sourceId).filter((id): id is string => id !== null));
+    const key = [...used].sort().join('\n');
+    if (!changed && key === this.usedKey) return;
+    this.usedKey = key;
+    this.sources.sync(p.sources.filter((s) => used.has(s.id)));
   }
 
   /** 사용자 터치 직후 호출: 막힌 영상 재생 */
