@@ -4,6 +4,7 @@ import '../ui/style.css';
 import '../ui/editor.css';
 import { resampleMesh, MESH_MAX, MESH_MIN } from '../core/mesh';
 import {
+  EDGE_LINE_DEFAULT,
   GRID_BORDER_DEFAULT,
   GRID_CELLS_MAX,
   GRID_CELLS_X_DEFAULT,
@@ -127,6 +128,24 @@ function duplicateSurface(): void {
   surfaces.splice(i + 1, 0, copy);
   setProject({ ...p, surfaces });
   stage.select(id);
+}
+
+/** 면과 같은 모양·자리에 '테두리 네온' 효과 면을 바로 위에 만든다. 효과 소스가 없으면 만든다 */
+function addEdgeOverlay(s: Surface): void {
+  const p = P();
+  let sources = p.sources;
+  let edge = sources.find((x) => x.type === 'shader' && x.preset === 'edge');
+  if (!edge) {
+    edge = { id: newId('src', sources.map((x) => x.id)), name: '테두리 네온', type: 'shader', preset: 'edge', params: { speed: 1, color: '#00e5ff', lineWidth: EDGE_LINE_DEFAULT } };
+    sources = [...sources, edge];
+  }
+  const id = newId('s', p.surfaces.map((x) => x.id));
+  const overlay: Surface = { ...structuredClone(s), id, name: `${s.name} 테두리`, sourceId: edge.id, mask: { polygon: null, feather: 0 }, opacity: 1, locked: false };
+  const surfaces = p.surfaces.slice();
+  surfaces.splice(p.surfaces.indexOf(s) + 1, 0, overlay); // 바로 위에 그린다
+  setProject({ ...p, sources, surfaces });
+  stage.select(id);
+  toast(`"${overlay.name}" 를 만들었습니다. 원래 면을 옮기면 이 면도 같이 옮겨 주세요`);
 }
 
 function deleteSurface(): void {
@@ -466,6 +485,8 @@ function renderProps(): void {
     opacity,
     h('label', {}, `종류: ${kindLabel(s)}${s.locked ? ' · 잠김' : ''}`),
     ...kind,
+    h('label', {}, '테두리'),
+    h('div', { class: 'row' }, h('button', { type: 'button', title: '이 면과 같은 모양·자리에 테두리만 빛나는 면을 바로 위에 만듭니다 (안쪽은 투명)', onclick: () => addEdgeOverlay(s) }, '테두리 네온 두르기')),
     h('label', {}, '한꺼번에 조절'),
     ...groupBlock(s),
     h('label', {}, '마스크 (면 바깥 잘라내기)'),
@@ -671,7 +692,17 @@ function sourceEditor(src: Source, used: number): HTMLElement {
       const speed = slider({ min: 0, max: 5, step: 0.1, value: src.params.speed, label: '효과 속도' }, (v) =>
         patchSource(src.id, { params: { ...currentParams(src.id), speed: v } }, false),
       );
-      fields.push(h('div', { class: 'row' }, h('div', { class: 'grow' }, preset), color), h('label', {}, '속도'), speed);
+      fields.push(h('div', { class: 'row' }, h('div', { class: 'grow' }, preset), color), h('label', {}, src.preset === 'edge' ? '속도 (1 = 8초에 한 바퀴)' : '속도'), speed);
+      if (src.preset === 'edge') {
+        // 테두리 네온: 안쪽이 투명하므로 다른 면 위에 같은 모양으로 겹쳐 쓰면 된다
+        color.setAttribute('aria-label', '네온 색');
+        const out = h('span', { class: 'muted small' }, `${src.params.lineWidth ?? EDGE_LINE_DEFAULT}px`);
+        const lw = slider({ min: 1, max: GRID_WIDTH_MAX, step: 1, value: src.params.lineWidth ?? EDGE_LINE_DEFAULT, label: '네온 선 두께' }, (v) => {
+          out.textContent = `${v}px`;
+          patchSource(src.id, { params: { ...currentParams(src.id), lineWidth: v } }, false);
+        });
+        fields.push(h('label', {}, '선 두께 ', out), lw, h('p', { class: 'muted small', style: 'margin:0' }, '안쪽은 투명합니다. 영상이 나오는 면을 복제해 이 효과를 지정하면 그 영상에 테두리를 두를 수 있습니다.'));
+      }
     }
   }
   const del = h('button', { type: 'button', class: 'icon danger', 'aria-label': `${src.name} 삭제`, onclick: () => deleteSource(src) }, '삭제');

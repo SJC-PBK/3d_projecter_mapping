@@ -9,13 +9,17 @@ export type { Mesh } from './mesh';
 
 export const PROJECT_VERSION = 1;
 
-export type ShaderPreset = 'scanlines' | 'noise' | 'flash' | 'grid';
+export type ShaderPreset = 'scanlines' | 'noise' | 'flash' | 'grid' | 'edge';
 export const SHADER_PRESETS: { id: ShaderPreset; label: string }[] = [
   { id: 'scanlines', label: '스캔라인' },
   { id: 'noise', label: '노이즈' },
   { id: 'flash', label: '단색 깜빡임' },
   { id: 'grid', label: '격자 (두께 조절)' },
+  { id: 'edge', label: '테두리 네온' },
 ];
+
+/** 테두리 네온 효과 기본 선 두께 (출력 px) */
+export const EDGE_LINE_DEFAULT = 8;
 
 /** 격자 효과 기본 두께 (출력 px) */
 export const GRID_LINE_DEFAULT = 2;

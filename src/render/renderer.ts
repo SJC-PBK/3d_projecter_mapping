@@ -3,7 +3,7 @@
 
 import { affineFromTriangle, IDENTITY, unitSquareToQuad, type Mat3 } from '../core/homography';
 import { subdivideMesh, type Mesh } from '../core/mesh';
-import { GRID_BORDER_DEFAULT, GRID_CELLS_X_DEFAULT, GRID_CELLS_Y_DEFAULT, GRID_LINE_DEFAULT, OUTPUT_PATTERNS, type Project, type Source, type Surface } from '../core/project';
+import { EDGE_LINE_DEFAULT, GRID_BORDER_DEFAULT, GRID_CELLS_X_DEFAULT, GRID_CELLS_Y_DEFAULT, GRID_LINE_DEFAULT, OUTPUT_PATTERNS, type Project, type Source, type Surface } from '../core/project';
 import { MAX_MASK_POINTS, WARP_FS, WARP_VS } from './shaders/warp';
 import { SourceManager } from './sources/manager';
 
@@ -212,7 +212,7 @@ export class Renderer {
       mode = 1;
       color = src.value;
     } else if (src?.type === 'shader') {
-      mode = { scanlines: 2, noise: 3, flash: 4, grid: 7 }[src.preset];
+      mode = { scanlines: 2, noise: 3, flash: 4, grid: 7, edge: 8 }[src.preset];
       speed = src.params.speed;
       color = src.params.color;
       if (src.preset === 'grid') {
@@ -221,6 +221,8 @@ export class Renderer {
         gl.uniform1f(this.u.uLine, (src.params.lineWidth ?? GRID_LINE_DEFAULT) * k);
         gl.uniform1f(this.u.uBorder, (src.params.borderWidth ?? GRID_BORDER_DEFAULT) * k);
         gl.uniform2f(this.u.uCells, src.params.cellsX ?? GRID_CELLS_X_DEFAULT, src.params.cellsY ?? GRID_CELLS_Y_DEFAULT);
+      } else if (src.preset === 'edge') {
+        gl.uniform1f(this.u.uLine, (src.params.lineWidth ?? EDGE_LINE_DEFAULT) * (this.canvas.width / p.output.width));
       }
     }
     gl.uniform1i(this.u.uMode, mode);

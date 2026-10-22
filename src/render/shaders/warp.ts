@@ -21,7 +21,7 @@ void main() {
 }
 `;
 
-/** 프래그먼트 셰이더. uMode: 0 텍스처, 1 단색, 2 스캔라인, 3 노이즈, 4 단색 깜빡임, 5 빈 소스 표시, 6 전체 화면 세팅 격자, 7 면 격자(두께 조절) */
+/** 프래그먼트 셰이더. uMode: 0 텍스처, 1 단색, 2 스캔라인, 3 노이즈, 4 단색 깜빡임, 5 빈 소스 표시, 6 전체 화면 세팅 격자, 7 면 격자(두께 조절), 8 테두리 네온 */
 export const WARP_FS = /* glsl */ `#version 300 es
 precision highp float;
 in vec2 vST;
@@ -123,6 +123,41 @@ void main() {
     else if (uv.x > 1.0 - k.x && uv.y > 1.0 - k.y) col = vec3(0.235, 0.431, 1.0);
     else if (uv.x < k.x && uv.y > 1.0 - k.y) col = vec3(0.941, 0.745, 0.0);
     c = vec4(col, 1.0);
+  } else if (uMode == 8) {
+    // 테두리 네온: 면의 실제 테두리만 빛나고 안쪽은 투명 — 다른 면 위에 겹쳐 영상에 테두리를 두를 수 있다.
+    // 빛 두 점이 테두리를 따라 돈다 (속도 1 = 8초에 한 바퀴). 선 두께는 화면 px 기준(uLine).
+    vec2 st = vST;
+    vec2 fw = max(fwidth(st), vec2(1e-6));
+    float d;    // 가장 가까운 테두리까지 (px)
+    float pos;  // 테두리 위 위치 0~1 (시계 방향)
+    if (uUVMode == 1) {
+      // 삼각형: 변 t=0 (꼭짓점0→1), s+t=1 (1→2), s=0 (2→0)
+      float d1 = st.y / fw.y;
+      float d2 = (1.0 - st.x - st.y) / max(fwidth(st.x + st.y), 1e-6);
+      float d3 = st.x / fw.x;
+      d = min(d1, min(d2, d3));
+      pos = d == d1 ? st.x / 3.0 : d == d2 ? (1.0 + st.y) / 3.0 : (2.0 + (1.0 - st.y)) / 3.0;
+    } else {
+      // 사각형·메시: 위 → 오른쪽 → 아래 → 왼쪽
+      float dt = st.y / fw.y;
+      float dr = (1.0 - st.x) / fw.x;
+      float db = (1.0 - st.y) / fw.y;
+      float dl = st.x / fw.x;
+      d = min(min(dt, dr), min(db, dl));
+      pos = d == dt ? st.x * 0.25 : d == dr ? 0.25 + st.y * 0.25 : d == db ? 0.5 + (1.0 - st.x) * 0.25 : 0.75 + (1.0 - st.y) * 0.25;
+    }
+    float w = max(uLine, 1.0);
+    float core = 1.0 - smoothstep(w * 0.5 - 0.5, w * 0.5 + 0.5, d);
+    float glow = exp(-d / (w * 1.2)) * 0.55;
+    float head = fract(t / 8.0);
+    float comet = 0.0;
+    for (int k = 0; k < 2; k++) {
+      float behind = fract(head + 0.5 * float(k) - pos);   // 빛 점 머리에서 뒤로 얼마나 떨어졌나
+      comet = max(comet, 1.0 - smoothstep(0.0, 0.13, behind));
+    }
+    // 기본 선은 70% 밝기(밝은 영상 위에서도 보이게), 빛 점이 지나는 곳은 100% + 번짐이 커진다
+    float a = clamp(max(core * (0.7 + 0.3 * comet), glow * (0.35 + 0.65 * comet)), 0.0, 1.0);
+    c = vec4(mix(uColor, vec3(1.0), comet * 0.75), a);
   } else {
     // 소스가 없거나 아직 불러오는 중: 어두운 빗금
     float s = step(0.5, fract((vST.x + vST.y) * 12.0));
