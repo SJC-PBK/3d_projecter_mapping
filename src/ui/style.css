@@ -55,20 +55,26 @@ h2 { font-size: 13px; margin: 0 0 8px; color: var(--muted); font-weight: 600; le
 kbd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-size: 12px; }
 
 /* 무대 (렌더 화면 + 조절점) */
-.stage { position: relative; width: 100%; height: 100%; overflow: hidden; background: #000; }
-.stage-view { position: absolute; overflow: hidden; background: #000; }
+/* 무대 바탕(출력 영역 밖)은 빗금 — 출력 영역(검정)과 구분되게 */
+.stage { position: relative; width: 100%; height: 100%; overflow: hidden;
+  background: repeating-linear-gradient(45deg, #111418 0 10px, #171b21 10px 20px); }
+/* 출력 영역: 검은 바탕(.stage-bg)과 렌더 화면이 확대 배율을 따라 커지므로 잘라내지 않는다 (무대 .stage 가 잘라냄) */
+.stage-view { position: absolute; overflow: visible; }
+.stage-bg { position: absolute; inset: 0; background: #000; transform-origin: 0 0; }
 .stage-gl, .stage-overlay { position: absolute; inset: 0; width: 100%; height: 100%; display: block; transform-origin: 0 0; }
 .stage { touch-action: none; }
 .stage:fullscreen { background: #000; }
 
 /* 알림 */
 #toasts { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); display: grid; gap: 6px; z-index: 100; pointer-events: none; }
+body:has(.banner, #update-banner) #toasts { bottom: 88px; } /* 아래쪽 안내 띠와 겹치지 않게 */
 .toast { background: var(--panel-2); border: 1px solid var(--line); padding: 8px 14px; border-radius: var(--radius); box-shadow: 0 4px 16px #0008; }
 .toast-error { border-color: var(--danger); color: #ffd0d0; }
 
 /* 새 버전 안내 */
-#update-banner, .banner { position: fixed; top: 0; left: 0; right: 0; z-index: 200; display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;
-  padding: 8px max(16px, env(safe-area-inset-right)) 8px max(16px, env(safe-area-inset-left)); background: var(--accent); color: var(--accent-text); font-weight: 600; }
+/* 화면 아래쪽에 띄워 위쪽 도구줄을 가리지 않는다 */
+#update-banner, .banner { position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;
+  padding: 8px max(16px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); background: var(--accent); color: var(--accent-text); font-weight: 600; box-shadow: 0 -4px 16px #0008; }
 #update-banner button, .banner button { background: var(--bg); color: var(--text); border-color: var(--bg); }
 
 /* 연결 상태 점 */

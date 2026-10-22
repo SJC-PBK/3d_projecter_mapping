@@ -11,6 +11,17 @@ import type { Store } from '../core/store';
 
 const BC_NAME = 'projection-mapper';
 const FLUSH_MS = 16;
+const UNSYNCED_KEY = 'projection-mapper:unsynced';
+
+/** 객체 항목 순서와 무관하게 내용만 비교하기 위한 문자열 (순서가 달라도 같은 매핑이면 같다) */
+function canonical(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map(canonical).join(',')}]`;
+  if (v && typeof v === 'object') {
+    const o = v as Record<string, unknown>;
+    return `{${Object.keys(o).filter((k) => o[k] !== undefined).sort().map((k) => `${JSON.stringify(k)}:${canonical(o[k])}`).join(',')}}`;
+  }
+  return JSON.stringify(v) ?? 'null';
+}
 
 export type WsState = 'off' | 'connecting' | 'open' | 'closed';
 
@@ -43,7 +54,31 @@ export class SyncChannel {
   private pending: Op[] = [];
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private lastFlush = 0;
-  private dirtyOffline = false;
+  /**
+   * 서버에 아직 올리지 못한 변경이 있음. 새로고침해도 잃지 않게 브라우저 저장소에도 남긴다
+   * (서버가 꺼진 동안 고치다가 새로고침하면, 다시 붙을 때 서버의 옛 상태에 덮이지 않고 이 기기의 상태를 올린다).
+   */
+  private dirtyFlag = false;
+  private get dirtyOffline(): boolean {
+    return this.dirtyFlag;
+  }
+  private set dirtyOffline(v: boolean) {
+    this.dirtyFlag = v;
+    if (!this.canEdit) return;
+    try {
+      if (v) localStorage.setItem(UNSYNCED_KEY, '1');
+      else localStorage.removeItem(UNSYNCED_KEY);
+    } catch {
+      // 저장소를 못 쓰면 이 창에서만 기억한다
+    }
+  }
+  /**
+   * 서버가 받았다고 확인되지 않은 변경이 있는지. 변경을 보낸 뒤 바로 ping 을 보내고, 그 pong 이 오면 확인된 것
+   * (서버는 받은 순서대로 처리하므로 뒤에 보낸 ping 의 응답 = 앞의 변경도 처리됨).
+   * 확인 전에 연결이 끊기면(서버가 죽는 순간 보낸 변경은 '보냄'으로 보이지만 닿지 않는다) 다시 붙을 때 이 상태를 올린다.
+   */
+  private lastOpSentAt = -1;
+  private confirmedAt = 0;
   private retryMs = 500;
   private pingTimer: ReturnType<typeof setInterval> | null = null;
   private closed = false;
@@ -59,6 +94,11 @@ export class SyncChannel {
   constructor(opts: SyncOptions) {
     this.opts = opts;
     this.synced = opts.useServer === false;
+    try {
+      this.dirtyFlag = this.canEdit && localStorage.getItem(UNSYNCED_KEY) === '1';
+    } catch {
+      this.dirtyFlag = false;
+    }
     opts.store.subscribe((_p, op, origin) => {
       if (origin === 'local') this.queue(op);
     });
@@ -99,11 +139,18 @@ export class SyncChannel {
     this.lastFlush = performance.now();
     const ops = this.pending;
     this.pending = [];
+    let sent = false;
     for (const op of ops) {
       const env: Message = { kind: 'op', from: this.id, seq: ++this.seq, op, sentAt: Date.now() };
       this.bc?.postMessage(env);
-      if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(env));
-      else if (this.opts.useServer !== false) this.dirtyOffline = true;
+      if (this.ws?.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify(env));
+        sent = true;
+      } else if (this.opts.useServer !== false) this.dirtyOffline = true;
+    }
+    if (sent) {
+      this.lastOpSentAt = performance.now();
+      this.ping(); // 서버가 받았는지 확인
     }
   }
 
@@ -125,7 +172,7 @@ export class SyncChannel {
         if (via === 'ws' && !this.synced && msg.op.type === 'full' && this.canEdit) {
           // 서버 기준 상태가 이 화면의 매핑을 덮어쓰기 직전: 다르면 이전 것을 넘겨 되돌릴 수 있게 한다
           const local = this.opts.store.project;
-          if (JSON.stringify(local) !== JSON.stringify(msg.op.project)) this.opts.onLocalReplaced?.(local, msg.op.project);
+          if (canonical(local) !== canonical(msg.op.project)) this.opts.onLocalReplaced?.(local, msg.op.project);
         }
         if (via === 'ws') this.synced = true;
         this.lastRemoteSentAt = msg.sentAt;
@@ -147,6 +194,7 @@ export class SyncChannel {
         return;
       }
       case 'pong':
+        this.confirmedAt = Math.max(this.confirmedAt, msg.t);
         this.setStatus({ rtt: Math.round(performance.now() - msg.t) });
         return;
       case 'ping':
@@ -171,6 +219,8 @@ export class SyncChannel {
       }
       ws.send(JSON.stringify(hello));
       this.dirtyOffline = false;
+      // 인사(push)도 서버가 받았는지 확인한다 — 확인 전에 끊기면 다음에 다시 올린다
+      if (hello.push) this.lastOpSentAt = performance.now();
       this.setStatus({ ws: 'open' });
       this.ping();
       this.pingTimer = setInterval(() => this.ping(), 3000);
@@ -183,6 +233,8 @@ export class SyncChannel {
       }
     };
     ws.onclose = () => {
+      // 서버가 받았다고 확인되지 않은 변경이 있으면, 다시 붙을 때 이 기기의 상태를 올린다
+      if (this.canEdit && this.lastOpSentAt >= 0 && this.confirmedAt < this.lastOpSentAt) this.dirtyOffline = true;
       if (this.pingTimer) clearInterval(this.pingTimer);
       this.pingTimer = null;
       this.ws = null;

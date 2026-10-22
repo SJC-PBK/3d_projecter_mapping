@@ -631,7 +631,7 @@ type NewSource = Source extends infer S ? (S extends Source ? Omit<S, 'id'> : ne
 function addSource(src: NewSource): string {
   const p = P();
   const id = newId('src', p.sources.map((s) => s.id));
-  const full = { ...src, id } as Source;
+  const full = { id, ...src } as Source;
   const next: Project = { ...p, sources: [...p.sources, full] };
   // 선택한 면이 있으면 바로 연결
   const s = stage.surface;

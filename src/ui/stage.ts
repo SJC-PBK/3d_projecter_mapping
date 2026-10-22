@@ -64,6 +64,7 @@ export class Stage {
   readonly root: HTMLDivElement;
   readonly view: HTMLDivElement;
   readonly overlay: HTMLCanvasElement;
+  private readonly bg: HTMLDivElement;
   readonly renderer: Renderer | null = null;
   readonly sel: Selection = { surfaceId: null, point: null, mask: false, multi: [] };
   showHandles = true;
@@ -83,8 +84,13 @@ export class Stage {
   private pendingTapAt: { x: number; y: number; n: Vec2 } | null = null;
   private drawQueued = false;
   private lastNudge = 0;
+  /** 출력 영역(view) 크기와, 무대 안에서의 위치 (조절점 층은 무대 전체를 덮는다) */
   private vw = 1;
   private vh = 1;
+  private ox = 0;
+  private oy = 0;
+  private cw = 1;
+  private ch = 1;
 
   private opts: StageOptions;
 
@@ -95,6 +101,10 @@ export class Stage {
     this.view = document.createElement('div');
     this.view.className = 'stage-view';
     this.root.append(this.view);
+    // 출력 영역의 검은 바탕. 확대할 때 렌더 화면과 함께 커져서, 확대해도 '출력 안'과 '밖(빗금)'이 맞게 보인다
+    this.bg = document.createElement('div');
+    this.bg.className = 'stage-bg';
+    this.view.append(this.bg);
     if (opts.withRenderer) {
       const gl = document.createElement('canvas');
       gl.className = 'stage-gl';
@@ -105,7 +115,8 @@ export class Stage {
     }
     this.overlay = document.createElement('canvas');
     this.overlay.className = 'stage-overlay';
-    this.view.append(this.overlay);
+    // 조절점 층은 출력 영역 밖(여백)까지 덮는다 — 화면 밖으로 나간 면·점도 보이고 잡을 수 있게
+    this.root.append(this.overlay);
     container.append(this.root);
     this.ctx = this.overlay.getContext('2d')!;
 
@@ -309,13 +320,13 @@ export class Stage {
 
   // ---------- 좌표 변환 ----------
 
-  /** 정규화 좌표 → 무대 CSS px */
+  /** 정규화 좌표 → 무대 CSS px (무대 왼쪽 위 기준, 출력 영역은 (ox, oy) 에서 시작) */
   toScreen(p: Vec2): Vec2 {
-    return [((p[0] - this.center[0]) * this.zoom + 0.5) * this.vw, ((p[1] - this.center[1]) * this.zoom + 0.5) * this.vh];
+    return [this.ox + ((p[0] - this.center[0]) * this.zoom + 0.5) * this.vw, this.oy + ((p[1] - this.center[1]) * this.zoom + 0.5) * this.vh];
   }
 
   toNorm(x: number, y: number): Vec2 {
-    return [(x / this.vw - 0.5) / this.zoom + this.center[0], (y / this.vh - 0.5) / this.zoom + this.center[1]];
+    return [((x - this.ox) / this.vw - 0.5) / this.zoom + this.center[0], ((y - this.oy) / this.vh - 0.5) / this.zoom + this.center[1]];
   }
 
   private pointer(e: PointerEvent | MouseEvent): { x: number; y: number; n: Vec2 } {
@@ -348,26 +359,30 @@ export class Stage {
     }
     this.vw = Math.max(1, Math.floor(vw));
     this.vh = Math.max(1, Math.floor(vh));
+    this.ox = Math.floor((cw - this.vw) / 2);
+    this.oy = Math.floor((ch - this.vh) / 2);
+    this.cw = Math.max(1, cw);
+    this.ch = Math.max(1, ch);
     Object.assign(this.view.style, {
       width: `${this.vw}px`,
       height: `${this.vh}px`,
-      left: `${Math.floor((cw - this.vw) / 2)}px`,
-      top: `${Math.floor((ch - this.vh) / 2)}px`,
+      left: `${this.ox}px`,
+      top: `${this.oy}px`,
     });
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    this.overlay.width = this.vw * dpr;
-    this.overlay.height = this.vh * dpr;
+    this.overlay.width = this.cw * dpr;
+    this.overlay.height = this.ch * dpr;
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.applyViewTransform();
     this.draw();
   }
 
   private applyViewTransform(): void {
-    const gl = this.renderer?.canvas;
-    if (!gl) return;
     const tx = (0.5 - this.center[0] * this.zoom) * this.vw;
     const ty = (0.5 - this.center[1] * this.zoom) * this.vh;
-    gl.style.transform = this.zoom === 1 ? '' : `translate(${tx}px, ${ty}px) scale(${this.zoom})`;
+    const t = this.zoom === 1 ? '' : `translate(${tx}px, ${ty}px) scale(${this.zoom})`;
+    this.bg.style.transform = t;
+    if (this.renderer) this.renderer.canvas.style.transform = t;
   }
 
   // ---------- 그리기 ----------
@@ -383,8 +398,9 @@ export class Stage {
 
   draw(): void {
     const c = this.ctx;
-    c.clearRect(0, 0, this.vw, this.vh);
+    c.clearRect(0, 0, this.cw, this.ch);
     if (!this.showHandles) return;
+    this.drawOutputBounds();
     const surfaces = this.project.surfaces;
     const big = this.opts.handleRadius >= 20;
     surfaces.forEach((s, i) => {
@@ -466,11 +482,58 @@ export class Stage {
       c.lineWidth = 1;
       c.beginPath();
       c.moveTo(0, y);
-      c.lineTo(this.vw, y);
+      c.lineTo(this.cw, y);
       c.moveTo(x, 0);
-      c.lineTo(x, this.vh);
+      c.lineTo(x, this.ch);
       c.stroke();
     }
+  }
+
+  /** 출력 해상도 영역의 경계: 점선 테두리 + 네 귀퉁이 꺾쇠 + 해상도 표시 (편집 화면에만, 출력에는 안 나옴) */
+  private drawOutputBounds(): void {
+    const c = this.ctx;
+    const [ax, ay] = this.toScreen([0, 0]);
+    const [bx, by] = this.toScreen([1, 1]);
+    // 확대하면 경계가 무대 밖으로 나갈 수 있어, 글자는 보이는 범위 안쪽에 둔다
+    const x0 = Math.max(ax, 1);
+    const y0 = Math.max(ay, 1);
+    const x1 = Math.min(bx, this.cw - 1);
+    const y1 = Math.min(by, this.ch - 1);
+    c.save();
+    c.setLineDash([8, 6]);
+    c.lineWidth = 1.5;
+    c.strokeStyle = 'rgba(127, 211, 255, 0.75)';
+    c.strokeRect(ax + 1, ay + 1, bx - ax - 2, by - ay - 2);
+    c.setLineDash([]);
+    // 귀퉁이 꺾쇠 (실제 귀퉁이가 화면 안에 있을 때만)
+    const L = 22;
+    c.lineWidth = 3;
+    c.strokeStyle = '#7fd3ff';
+    const corner = (x: number, y: number, dx: number, dy: number) => {
+      c.beginPath();
+      c.moveTo(x + dx * L, y);
+      c.lineTo(x, y);
+      c.lineTo(x, y + dy * L);
+      c.stroke();
+    };
+    if (ax >= 0 && ay >= 0) corner(ax + 1.5, ay + 1.5, 1, 1);
+    if (bx <= this.cw && ay >= 0) corner(bx - 1.5, ay + 1.5, -1, 1);
+    if (bx <= this.cw && by <= this.ch) corner(bx - 1.5, by - 1.5, -1, -1);
+    if (ax >= 0 && by <= this.ch) corner(ax + 1.5, by - 1.5, 1, -1);
+    // 해상도 표시
+    const { width, height } = this.project.output;
+    const label = `출력 ${width}×${height}`;
+    c.font = '600 12px system-ui, sans-serif';
+    const tw = c.measureText(label).width;
+    if (x1 - x0 > tw + 20 && y1 - y0 > 30) {
+      c.fillStyle = 'rgba(0, 0, 0, 0.65)';
+      c.fillRect(x0 + 6, y0 + 6, tw + 12, 20);
+      c.fillStyle = '#7fd3ff';
+      c.textAlign = 'left';
+      c.textBaseline = 'middle';
+      c.fillText(label, x0 + 12, y0 + 16);
+    }
+    c.restore();
   }
 
   /** 출력 px → 무대 CSS px */

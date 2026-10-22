@@ -24,7 +24,6 @@ aside.left { grid-area: left; border-right: 1px solid var(--line); }
 aside.right { grid-area: right; border-left: 1px solid var(--line); }
 aside section + section { margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--line); }
 #stage { grid-area: stage; min-width: 0; min-height: 0; background: #07080a; }
-#stage .stage { background: #07080a; }
 
 .list { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 4px; }
 .list li { display: flex; gap: 4px; }
