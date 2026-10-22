@@ -34,6 +34,16 @@ export function toast(message: string, kind: 'info' | 'error' = 'info'): void {
   setTimeout(() => t.remove(), kind === 'error' ? 6000 : 2500);
 }
 
+/** 위쪽 안내 띠: 글 + 버튼들 (같은 id 는 하나만) */
+export function showBanner(id: string, text: string, buttons: { label: string; primary?: boolean; onClick: () => void }[]): void {
+  document.getElementById(id)?.remove();
+  const bar = h('div', { id, class: 'banner', role: 'alert' }, text + ' ');
+  for (const b of buttons) {
+    bar.append(h('button', { type: 'button', class: b.primary ? 'primary' : '', onclick: () => (b.onClick(), bar.remove()) }, b.label));
+  }
+  document.body.append(bar);
+}
+
 /** 새 버전 안내 띠 (편집 중일 수 있어 자동으로 새로고침하지 않는다) */
 export function showUpdateBanner(): void {
   if (document.getElementById('update-banner')) return;

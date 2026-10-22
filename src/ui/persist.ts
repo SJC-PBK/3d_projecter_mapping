@@ -3,6 +3,21 @@
 import { createDefaultProject, parseProject, type Project } from '../core/project';
 
 const KEY = 'projection-mapper:project';
+const BACKUP_KEY = 'projection-mapper:before-sync';
+
+/** 서버 상태로 덮어쓰기 전 이 브라우저의 매핑을 따로 보관 (되돌리기용, 최근 1개) */
+export function stashBeforeSync(p: Project): void {
+  try {
+    localStorage.setItem(BACKUP_KEY, JSON.stringify({ savedAt: new Date().toISOString(), project: p }));
+  } catch (err) {
+    console.warn('이전 매핑 보관 실패', err);
+  }
+}
+
+/** 처음 상태(기본 프로젝트) 그대로인지 — 이런 기기에서는 덮어써도 잃을 것이 없다 */
+export function isUntouchedDefault(p: Project): boolean {
+  return JSON.stringify(p) === JSON.stringify(createDefaultProject());
+}
 
 export function loadLocal(): Project | null {
   try {

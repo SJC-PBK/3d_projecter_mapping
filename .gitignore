@@ -3,3 +3,4 @@ dist/
 media/
 *.log
 public-repo/
+data/

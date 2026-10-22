@@ -1,9 +1,10 @@
 // 정적 파일 + WebSocket 중계 서버. 시작하면 LAN 주소와 리모컨 QR 코드를 출력한다.
 //   npm run dev   → Vite 개발 서버를 미들웨어로 붙여 실행
 //   npm start     → dist/ (npm run build 결과)를 그대로 내보냄 — 인터넷 없이 동작
-// 환경변수: PORT (기본 5200), HOST (기본 0.0.0.0), MEDIA_DIR (올린 파일 폴더, 기본 ./media)
+// 환경변수: PORT (기본 5200), HOST (기본 0.0.0.0), MEDIA_DIR (올린 파일 폴더, 기본 ./media),
+//           STATE_FILE (지금 매핑을 저장할 파일, 기본 ./data/project.json — 다시 시작해도 매핑이 남는다)
 
-import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import http from 'node:http';
 import { networkInterfaces } from 'node:os';
 import { extname, join, normalize, resolve, sep } from 'node:path';
@@ -20,6 +21,7 @@ const PORT = Number(process.env.PORT ?? 5200);
 const HOST = process.env.HOST ?? '0.0.0.0';
 const DIST = join(ROOT, 'dist');
 const MEDIA = resolve(process.env.MEDIA_DIR ?? join(ROOT, 'media'));
+const STATE_FILE = resolve(process.env.STATE_FILE ?? join(ROOT, 'data', 'project.json'));
 const MAX_UPLOAD = 300 * 1024 * 1024; // 300MB (사내망 누구나 올릴 수 있으므로 제한)
 
 const MIME: Record<string, string> = {
@@ -64,7 +66,35 @@ const builds = readBuilds();
 
 const serverId = `server-${Math.random().toString(36).slice(2, 8)}`;
 let seq = 0;
-let project: Project | null = null;
+// 서버가 기준으로 들고 있는 매핑. 파일에도 저장해 서비스를 다시 시작해도 잃지 않는다
+// (2026-10-22: 메모리에만 두었더니 재시작 직후 처음 붙은 빈 편집기가 기준이 되어 매핑이 기본값으로 바뀐 일이 있었다)
+let project: Project | null = loadState();
+
+function loadState(): Project | null {
+  try {
+    const p = JSON.parse(readFileSync(STATE_FILE, 'utf8')) as Project;
+    return p && Array.isArray(p.surfaces) && Array.isArray(p.sources) ? p : null;
+  } catch {
+    return null;
+  }
+}
+
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+/** 잦은 변경(드래그)은 0.5초 모아서 저장. 임시 파일에 쓰고 바꿔치기 해 반쯤 쓴 파일이 남지 않게 */
+function saveState(): void {
+  if (saveTimer) return;
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    if (!project) return;
+    try {
+      mkdirSync(join(STATE_FILE, '..'), { recursive: true });
+      writeFileSync(`${STATE_FILE}.tmp`, JSON.stringify(project));
+      renameSync(`${STATE_FILE}.tmp`, STATE_FILE);
+    } catch (err) {
+      console.error('매핑 저장 실패', err);
+    }
+  }, 500);
+}
 const roles = new Map<WebSocket, Role>();
 
 function send(ws: WebSocket, msg: Message): void {
@@ -95,6 +125,7 @@ function onMessage(ws: WebSocket, raw: string): void {
       if (msg.project && (project === null || msg.push)) {
         // 서버가 비었거나, 끊긴 동안 고친 내용 → 이 상태를 기준으로 삼고 모두에게 알린다
         project = msg.project;
+        saveState();
         const full = fullMessage()!;
         for (const other of roles.keys()) if (other !== ws) send(other, full);
       }
@@ -107,6 +138,7 @@ function onMessage(ws: WebSocket, raw: string): void {
     case 'op':
       if (!project) return;
       project = applyOp(project, msg.op);
+      saveState();
       for (const other of roles.keys()) if (other !== ws) send(other, msg);
       return;
     case 'ping':

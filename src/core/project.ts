@@ -264,6 +264,13 @@ export function isOldGridImage(s: Source): boolean {
   return s.id === WHITE_GRID.id && s.type === 'image' && s.uri === 'assets/grid-white.png';
 }
 
+/** 매핑용 8초 반복 영상 3종 (검은 바탕 = 빛 없음, 첫·끝 장면이 같아 반복 이음매 없음) */
+export const SAMPLE_CLIPS: Source[] = [
+  { id: 'clip-light-sweep', name: '빛 훑기 (영상)', type: 'video', uri: 'assets/clips/light-sweep.mp4', loop: true },
+  { id: 'clip-neon-edge', name: '테두리 네온 (영상)', type: 'video', uri: 'assets/clips/neon-edge.mp4', loop: true },
+  { id: 'clip-brick-build', name: '벽돌 쌓기 (영상)', type: 'video', uri: 'assets/clips/brick-build.mp4', loop: true },
+];
+
 /** 처음 실행했을 때의 프로젝트: 기본 격자를 쿼드 하나에 */
 export function createDefaultProject(): Project {
   const surface = makeQuad('front', '정면 벽');
@@ -277,6 +284,8 @@ export function createDefaultProject(): Project {
       { id: 'checker', name: '체크무늬 패턴', type: 'image', uri: 'assets/checker.png' },
       { id: 'circles', name: '원 패턴', type: 'image', uri: 'assets/circles.png' },
       { id: 'sample', name: '샘플 영상', type: 'video', uri: 'assets/sample.mp4', loop: true },
+      // 매핑용 8초 반복 영상 (clips/ 의 HyperFrames 프로젝트로 만듦)
+      ...SAMPLE_CLIPS.map((c) => ({ ...c })),
       { id: 'white', name: '흰색', type: 'color', value: '#ffffff' },
     ],
     surfaces: [surface],

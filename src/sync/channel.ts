@@ -30,6 +30,8 @@ export interface SyncOptions {
   onStatus?: (s: SyncStatus) => void;
   /** 서버에 새 버전이 배포돼 이 화면이 옛 코드일 때 (한 번만 부른다) */
   onOutdated?: () => void;
+  /** 처음 받은 서버 상태가 이 화면(브라우저 저장)의 매핑과 달라 덮어쓸 때, 덮어쓰기 전 매핑을 넘겨준다 */
+  onLocalReplaced?: (previous: import('../core/project').Project, incoming: import('../core/project').Project) => void;
 }
 
 export class SyncChannel {
@@ -120,6 +122,11 @@ export class SyncChannel {
         const last = this.lastSeen.get(msg.from);
         if (last !== undefined && msg.seq <= last) return; // 이미 받았거나 더 오래된 것
         this.lastSeen.set(msg.from, msg.seq);
+        if (via === 'ws' && !this.synced && msg.op.type === 'full' && this.canEdit) {
+          // 서버 기준 상태가 이 화면의 매핑을 덮어쓰기 직전: 다르면 이전 것을 넘겨 되돌릴 수 있게 한다
+          const local = this.opts.store.project;
+          if (JSON.stringify(local) !== JSON.stringify(msg.op.project)) this.opts.onLocalReplaced?.(local, msg.op.project);
+        }
         if (via === 'ws') this.synced = true;
         this.lastRemoteSentAt = msg.sentAt;
         this.opts.store.dispatch(msg.op, { origin: 'remote' });

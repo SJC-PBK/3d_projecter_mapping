@@ -5,8 +5,8 @@ import '../ui/remote.css';
 import { editablePoints } from '../core/project';
 import { Store } from '../core/store';
 import { SyncChannel } from '../sync/channel';
-import { $, h, showUpdateBanner, toast } from '../ui/dom';
-import { loadLocalOrDefault, saveLocal } from '../ui/persist';
+import { $, h, showBanner, showUpdateBanner, toast } from '../ui/dom';
+import { isUntouchedDefault, loadLocalOrDefault, saveLocal, stashBeforeSync } from '../ui/persist';
 import { Stage } from '../ui/stage';
 
 const store = new Store(loadLocalOrDefault());
@@ -28,6 +28,15 @@ const sync = new SyncChannel({
   role: 'remote',
   store,
   onOutdated: showUpdateBanner,
+  // 서버의 매핑이 이 기기에 저장된 매핑과 달라 덮어썼을 때: 이전 것을 보관하고 되돌릴 수 있게 한다
+  onLocalReplaced: (previous, incoming) => {
+    if (isUntouchedDefault(previous)) return;
+    stashBeforeSync(previous);
+    showBanner('restore-banner', `서버의 매핑(면 ${incoming.surfaces.length}개)으로 바뀌었습니다. 이 기기에 있던 매핑(면 ${previous.surfaces.length}개)은 따로 보관했습니다.`, [
+      { label: '이 기기의 매핑으로 되돌리기', primary: true, onClick: () => store.dispatch({ type: 'full', project: previous }, { history: true }) },
+      { label: '서버 것 그대로 쓰기', onClick: () => undefined },
+    ]);
+  },
   onStatus: (s) => {
     const el = $('#status');
     if (s.ws === 'open') {
